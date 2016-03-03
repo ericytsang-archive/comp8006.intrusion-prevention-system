@@ -6,7 +6,7 @@
 #ARG4: PATH TO CSV FILE ("DATABASE")
 #ARG5: PATH TO ARCHIVE FILE ("LOG COPY")
 
-IPT="iptables"
+IPT="/sbin/iptables"
 LOG_PATH="$1"
 MAX_ATTEMPTS="$2"
 BAN_TIME="$3"
@@ -21,7 +21,7 @@ cat $TEMP_PATH >> $ARCH_PATH
 
 #ADD ATTEMPTS, UPDATE TIME AND BAN IF NECESSARY
 #secure log
-grep -E 'Failed password|Connection closed|FAILED LOGIN' $TEMP_PATH | while read line ; do 
+grep -E 'Failed password|Connection closed|FAILED LOGIN' $TEMP_PATH | while read line ; do
 
 	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
@@ -32,7 +32,7 @@ grep -E 'Failed password|Connection closed|FAILED LOGIN' $TEMP_PATH | while read
 	newtime=$(date +%s)
 
 	if grep -q "$IP_ADDRESS" $DB_PATH
-	then	
+	then
 
 		while IFS=',' read -r ipaddr attempts eptime
 
@@ -67,12 +67,12 @@ grep -E 'Failed password|Connection closed|FAILED LOGIN' $TEMP_PATH | while read
 
 	fi
 
-		
+
 done
 
 #ADD ATTEMPTS, UPDATE TIME AND BAN IF NECESSARY
 #message log
-grep -E 'op=password|op=login' $TEMP_PATH | grep 'res=failed' | while read line ; do 
+grep -E 'op=password|op=login' $TEMP_PATH | grep 'res=failed' | while read line ; do
 
 	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
@@ -83,7 +83,7 @@ grep -E 'op=password|op=login' $TEMP_PATH | grep 'res=failed' | while read line 
 	newtime=$(date +%s)
 
 	if grep -q "$IP_ADDRESS" $DB_PATH
-	then	
+	then
 
 		while IFS=',' read -r ipaddr attempts eptime
 
@@ -118,37 +118,37 @@ grep -E 'op=password|op=login' $TEMP_PATH | grep 'res=failed' | while read line 
 
 	fi
 
-		
+
 done
 
-#CLEAR FROM DB 
+#CLEAR FROM DB
 #secure log
-grep -E 'Accepted password|LOGIN ON' $TEMP_PATH | while read -r line ; do 
+grep -E 'Accepted password|LOGIN ON' $TEMP_PATH | while read -r line ; do
 
 	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
 	if grep -q "$IP_ADDRESS" $DB_PATH
-	then	
+	then
 
 		sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
 
 	fi
-		
+
 done
 
-#CLEAR FROM DB 
+#CLEAR FROM DB
 #message log
-grep 'op=login' $TEMP_PATH | grep 'res=success' | while read -r line ; do 
+grep 'op=login' $TEMP_PATH | grep 'res=success' | while read -r line ; do
 
 	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
 	if grep -q "$IP_ADDRESS" $DB_PATH
-	then	
+	then
 
 		sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
 
 	fi
-		
+
 done
 
 #UNBAN AND CLEAR FROM DB
