@@ -43,11 +43,8 @@ if [[ ! "$2" =~ $re || ! "$3" =~ $re ]] ; then
 
 fi
 
-
 touch $DB_PATH
 touch $ARCH_PATH
-
-chmod 777 $DB_PATH
 
 echo "IP ADDRESS, ATTEMPTS, LAST ATTEMPT TIME" >> $DB_PATH
 

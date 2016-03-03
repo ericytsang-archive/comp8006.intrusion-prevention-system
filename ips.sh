@@ -20,18 +20,18 @@ cat $LOG_PATH > $TEMP_PATH
 cat $TEMP_PATH >> $ARCH_PATH
 
 #ADD ATTEMPTS, UPDATE TIME AND BAN IF NECESSARY
-grep "Failed password" $TEMP_PATH | while read line ; do 
+grep -iE 'Failed password|Connection closed|res=failed|FAILED LOGIN' $TEMP_PATH | while read line ; do 
 
 	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
+	if [ -z "$IP_ADDRESS" ] ; then
+	 	continue
+	fi
+
 	newtime=$(date +%s)
 
-	echo "GREP RUNS"
-
 	if grep -q "$IP_ADDRESS" $DB_PATH
-	then
-
-		echo "GREP FOUND IP"	
+	then	
 
 		while IFS=',' read -r ipaddr attempts eptime
 
@@ -39,21 +39,20 @@ grep "Failed password" $TEMP_PATH | while read line ; do
 
 			if [ "$ipaddr" == "$IP_ADDRESS" ] ; then
 
-				newcount=$(($attempts + 1))
+				echo "GREP FOUND IP"
 
-				
+				newcount=$(($attempts + 1))
 
 				if [ $newcount -ge $MAX_ATTEMPTS ] ; then
 
-					grep -v $IP_ADDRESS $DB_PATH > $DB_PATH
-					echo "$IP_ADDRESS , $newcount , $newtime" >> $DB_PATH
-					$IPT -I INPUT 1 -s "$ipaddr" -j DROP
+					sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+					echo "${IP_ADDRESS},${newcount},${newtime}" >> $DB_PATH
+					$IPT -I INPUT 1 -s "$IP_ADDRESS" -j DROP
 
 				else
 
-					grep -v $IP_ADDRESS $DB_PATH > $DB_PATH
-					echo "$IP_ADDRESS , $newcount , $newtime" >> $DB_PATH
-					echo "here"
+					sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+					echo "${IP_ADDRESS},${newcount},${newtime}" >> $DB_PATH
 
 				fi
 
@@ -65,8 +64,7 @@ grep "Failed password" $TEMP_PATH | while read line ; do
 
 	else
 
-		echo "$IP_ADDRESS , 1 , $newtime" >> $DB_PATH
-		echo "GREP NOT FOUND IP"
+		echo "${IP_ADDRESS},1,${newtime}" >> $DB_PATH
 
 	fi
 
@@ -76,12 +74,12 @@ done
 #CLEAR FROM DB
 grep "Accepted password" $TEMP_PATH | while read -r line ; do 
 
-	IP_ADDRESS=$(awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
+	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
 	if grep -q "$IP_ADDRESS" $DB_PATH
 	then	
 
-		grep -v $IP_ADDRESS $DB_PATH > $DB_PATH
+		sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
 
 	fi
 		
@@ -95,7 +93,7 @@ sed 1d $DB_PATH | while IFS=',' read -r ipaddr attempts eptime
 
 			if [ $currentime -ge $checktime ] ; then
 
-				grep -v $IP_ADDRESS $DB_PATH > $DB_PATH
+				sed -i "/\b\(${ipaddr}\)\b/d" $DB_PATH
 				$IPT -I INPUT 1 -s "$ipaddr" -j ACCEPT
 
 			fi
