@@ -20,7 +20,8 @@ cat $LOG_PATH > $TEMP_PATH
 cat $TEMP_PATH >> $ARCH_PATH
 
 #ADD ATTEMPTS, UPDATE TIME AND BAN IF NECESSARY
-grep -iE 'Failed password|Connection closed|res=failed|FAILED LOGIN' $TEMP_PATH | while read line ; do 
+#secure log
+grep -E 'Failed password|Connection closed|FAILED LOGIN' $TEMP_PATH | while read line ; do 
 
 	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
@@ -69,8 +70,75 @@ grep -iE 'Failed password|Connection closed|res=failed|FAILED LOGIN' $TEMP_PATH 
 		
 done
 
-#CLEAR FROM DB
-grep "Accepted password" $TEMP_PATH | while read -r line ; do 
+#ADD ATTEMPTS, UPDATE TIME AND BAN IF NECESSARY
+#message log
+grep -E 'op=password|op=login' $TEMP_PATH | grep 'res=failed' | while read line ; do 
+
+	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
+
+	if [ -z "$IP_ADDRESS" ] ; then
+	 	continue
+	fi
+
+	newtime=$(date +%s)
+
+	if grep -q "$IP_ADDRESS" $DB_PATH
+	then	
+
+		while IFS=',' read -r ipaddr attempts eptime
+
+		do
+
+			if [ "$ipaddr" == "$IP_ADDRESS" ] ; then
+
+				newcount=$(($attempts + 1))
+
+				if [ $newcount -ge $MAX_ATTEMPTS ] ; then
+
+					sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+					echo "${IP_ADDRESS},${newcount},${newtime}" >> $DB_PATH
+					$IPT -I INPUT 1 -s "$IP_ADDRESS" -j DROP
+
+				else
+
+					sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+					echo "${IP_ADDRESS},${newcount},${newtime}" >> $DB_PATH
+
+				fi
+
+				break
+
+			fi
+
+		done < $DB_PATH
+
+	else
+
+		echo "${IP_ADDRESS},1,${newtime}" >> $DB_PATH
+
+	fi
+
+		
+done
+
+#CLEAR FROM DB 
+#secure log
+grep -E 'Accepted password|LOGIN ON' $TEMP_PATH | while read -r line ; do 
+
+	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
+
+	if grep -q "$IP_ADDRESS" $DB_PATH
+	then	
+
+		sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+
+	fi
+		
+done
+
+#CLEAR FROM DB 
+#message log
+grep 'op=login' $TEMP_PATH | grep 'res=success' | while read -r line ; do 
 
 	IP_ADDRESS=$(echo $line | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}')
 
