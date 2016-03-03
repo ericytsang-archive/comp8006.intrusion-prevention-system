@@ -39,8 +39,6 @@ grep -iE 'Failed password|Connection closed|res=failed|FAILED LOGIN' $TEMP_PATH 
 
 			if [ "$ipaddr" == "$IP_ADDRESS" ] ; then
 
-				echo "GREP FOUND IP"
-
 				newcount=$(($attempts + 1))
 
 				if [ $newcount -ge $MAX_ATTEMPTS ] ; then
