@@ -42,7 +42,7 @@ grep -E 'Failed password|Connection closed|FAILED LOGIN' $TEMP_PATH | while read
 
 				newcount=$(($attempts + 1))
 
-				if [ $newcount -ge $MAX_ATTEMPTS ] ; then
+				if [ $newcount -eq $MAX_ATTEMPTS ] ; then
 
 					sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
 					echo "${IP_ADDRESS},${newcount},${newtime}" >> $DB_PATH
@@ -93,7 +93,7 @@ grep -E 'op=password|op=login' $TEMP_PATH | grep 'res=failed' | while read line 
 
 				newcount=$(($attempts + 1))
 
-				if [ $newcount -ge $MAX_ATTEMPTS ] ; then
+				if [ $newcount -eq $MAX_ATTEMPTS ] ; then
 
 					sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
 					echo "${IP_ADDRESS},${newcount},${newtime}" >> $DB_PATH
@@ -129,9 +129,15 @@ grep -E 'Accepted password|LOGIN ON' $TEMP_PATH | while read -r line ; do
 
 	if grep -q "$IP_ADDRESS" $DB_PATH
 	then
+		while IFS=',' read -r ipaddr attempts eptime
+		do
 
-		sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+			if [ "$ipaddr" == "$IP_ADDRESS" ] ; then
+				sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+				echo "${IP_ADDRESS},0,${eptime}" >> $DB_PATH
+			fi
 
+		done < $DB_PATH
 	fi
 
 done
@@ -144,9 +150,15 @@ grep 'op=login' $TEMP_PATH | grep 'res=success' | while read -r line ; do
 
 	if grep -q "$IP_ADDRESS" $DB_PATH
 	then
+		while IFS=',' read -r ipaddr attempts eptime
+		do
 
-		sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+			if [ "$ipaddr" == "$IP_ADDRESS" ] ; then
+				sed -i "/\b\(${IP_ADDRESS}\)\b/d" $DB_PATH
+				echo "${IP_ADDRESS},0,${eptime}" >> $DB_PATH
+			fi
 
+		done < $DB_PATH
 	fi
 
 done
@@ -160,7 +172,7 @@ sed 1d $DB_PATH | while IFS=',' read -r ipaddr attempts eptime
 			if [ $currentime -ge $checktime ] ; then
 
 				sed -i "/\b\(${ipaddr}\)\b/d" $DB_PATH
-				$IPT -I INPUT 1 -s "$ipaddr" -j ACCEPT
+				$IPT -D INPUT -s "$ipaddr" -j DROP
 
 			fi
 

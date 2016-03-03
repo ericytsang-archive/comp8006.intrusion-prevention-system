@@ -49,7 +49,3 @@ touch $ARCH_PATH
 echo "IP ADDRESS, ATTEMPTS, LAST ATTEMPT TIME" >> $DB_PATH
 
 echo "* * * * * $SCRIPT_PATH $1 $2 $3 $DB_PATH $ARCH_PATH" | crontab
-
-
-
-
